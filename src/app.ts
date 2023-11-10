@@ -5,14 +5,10 @@ import cardRouter from './routes/card';
 import { TypeUser } from './types';
 
 const app = express();
-const port = 3000;
 
-mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
+const { port = 3000, MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb' } = process.env;
 
 app.use(express.json());
-
-app.use(userRouter);
-app.use(cardRouter);
 
 app.use((req: TypeUser, res: Response, next: NextFunction) => {
   req.user = {
@@ -21,6 +17,19 @@ app.use((req: TypeUser, res: Response, next: NextFunction) => {
   next();
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+app.use(userRouter);
+app.use(cardRouter);
+
+async function connect() {
+  try {
+    mongoose.set('strictQuery', true);
+    await mongoose.connect(MONGO_URL);
+    console.log('База данных подключена');
+    await app.listen(port);
+    console.log(`Сервер запущен на порту: ${port}`);
+  } catch (err) {
+    console.log('Ошибка на стороне сервера', err);
+  }
+}
+
+connect();
