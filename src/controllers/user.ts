@@ -6,10 +6,24 @@ import {
   SUCCESSFUL_REQUEST_STATUS, BAD_REQUEST_STATUS, NOT_FOUND_STATUS, INTERNAL_SERVER_ERROR_STATUS,
 } from '../constants';
 
+type TUser = {
+  name?: string;
+  about?: string;
+  avatar?: string;
+};
+
+type TUserId = string;
+
+function updateUserProfile(userId: TUserId, data: TUser) {
+  return User.findByIdAndUpdate(userId, data, {
+    new: true,
+  });
+}
+
 export const getUsers = (req: Request, res: Response) => {
   User.find({})
     .then((users) => res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: users }))
-    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' }));
+    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'На сервере произошла ошибка' }));
 };
 
 export const getUserById = (req: Request, res: Response) => {
@@ -25,7 +39,7 @@ export const getUserById = (req: Request, res: Response) => {
       }
       return res.status(NOT_FOUND_STATUS).send({ message: 'Пользователь по указанному _id не найден' });
     })
-    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' }));
+    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'На сервере произошла ошибка' }));
 };
 
 export const createUser = (req: Request, res: Response) => {
@@ -39,14 +53,14 @@ export const createUser = (req: Request, res: Response) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные при создании пользователя' });
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' });
+      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'На сервере произошла ошибка' });
     });
 };
 
 export const updateUser = (req: TypeUser, res: Response) => {
   const { name, about } = req.body;
 
-  User.findByIdAndUpdate(req.user?._id, { name, about }, { new: true })
+  return updateUserProfile(req.user?._id, { name, about })
     .then((user) => {
       if (user) {
         res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: user });
@@ -57,14 +71,14 @@ export const updateUser = (req: TypeUser, res: Response) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные при обновлении профиля. ' });
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' });
+      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'На сервере произошла ошибка' });
     });
 };
 
 export const updateUserAvatar = (req: TypeUser, res: Response) => {
   const { avatar } = req.body;
 
-  User.findByIdAndUpdate(req.user?._id, { avatar }, { new: true })
+  return updateUserProfile(req.user?._id, { avatar })
     .then((user) => {
       if (user) {
         res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: user });
@@ -75,6 +89,6 @@ export const updateUserAvatar = (req: TypeUser, res: Response) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные при обновлении аватара. ' });
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' });
+      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'На сервере произошла ошибка' });
     });
 };
