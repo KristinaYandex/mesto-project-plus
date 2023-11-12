@@ -8,6 +8,8 @@ interface SessionRequest extends Request {
   user?: string | JwtPayload;
 }
 
+const { JWT_SECRET = '9a5f1c75e461d7ceb1cf3cab9013eb2dc85b6d0da8c3c6e27e3a5a5b3faa5bab' } = process.env;
+
 export default (req: SessionRequest, res: Response, next: NextFunction) => {
   const { authorization } = req.headers;
 
@@ -19,7 +21,7 @@ export default (req: SessionRequest, res: Response, next: NextFunction) => {
   let payload;
 
   try {
-    payload = jwt.verify(token, 'some-secret-key');
+    payload = jwt.verify(token, JWT_SECRET as string);
   } catch (err) {
     return res.status(UNAUTHORIZED_ERROR_STATUS).send({ message: 'Передан неверный логин или пароль' });
   }

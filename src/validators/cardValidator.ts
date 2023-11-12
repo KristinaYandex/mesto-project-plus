@@ -9,10 +9,10 @@ export const createCardValidation = celebrate({
         'string.max': 'Максимальная длина поля "name" - 30 символов',
         'string.empty': 'Поле "name" должно быть заполнено',
       }),
-    avatar: Joi.string().required().pattern(urlRegex)
+    link: Joi.string().required().pattern(urlRegex)
       .message('Некорректный url')
       .messages({
-        'string.empty': 'Поле "avatar" должно быть заполнено',
+        'string.empty': 'Поле "link" должно быть заполнено',
       }),
   }),
 });

@@ -20,6 +20,8 @@ type TUser = {
 
 type TUserId = string;
 
+const { JWT_SECRET = '9a5f1c75e461d7ceb1cf3cab9013eb2dc85b6d0da8c3c6e27e3a5a5b3faa5bab' } = process.env;
+
 function updateUserProfile(userId: TUserId, data: TUser) {
   return User.findByIdAndUpdate(userId, data, {
     new: true,
@@ -130,7 +132,7 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
   return User.findUserByCredentials(email, password)
     .then((user) => {
       // создадим токен
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET as string, { expiresIn: '7d' });
 
       // вернём токен
       res.send({ token });
