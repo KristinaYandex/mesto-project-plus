@@ -1,18 +1,21 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Card from '../models/card';
 import { TypeUser } from '../types';
 import {
-  SUCCESSFUL_REQUEST_STATUS, BAD_REQUEST_STATUS, NOT_FOUND_STATUS, INTERNAL_SERVER_ERROR_STATUS,
+  SUCCESSFUL_REQUEST_STATUS,
 } from '../constants';
+import ValidationError from '../errors/validation-error';
+import ForbiddenError from '../errors/forbidden-error';
+import NotFoundError from '../errors/not-found-error';
 
-export const getCards = (req: Request, res: Response) => {
+export const getCards = (req: Request, res: Response, next: NextFunction) => {
   Card.find({})
     .then((cards) => res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: cards }))
-    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' }));
+    .catch((err) => next(err));
 };
 
-export const createCard = (req: TypeUser, res: Response) => {
+export const createCard = (req: TypeUser, res: Response, next: NextFunction) => {
   const { name, link } = req.body;
 
   Card.create({ name, link, owner: req.user?._id })
@@ -21,51 +24,54 @@ export const createCard = (req: TypeUser, res: Response) => {
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные при создании карточки' });
+        next((new ValidationError('Переданы некорректные данные при создании карточки')));
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию.' });
+      next(err);
     });
 };
 
-export const deleteCardById = (req: TypeUser, res: Response) => {
+export const deleteCardById = (req: TypeUser, res: Response, next: NextFunction) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
-      if (card && card.owner.toString() === req.user?._id) {
-        res.status(SUCCESSFUL_REQUEST_STATUS).send({ message: 'Карточка удалена' });
+      if (!card) {
+        throw new NotFoundError('Карточка по указанному ID не найдена');
       }
-      return res.status(NOT_FOUND_STATUS).send({ message: 'Карточка по указанному ID не найдена' });
+      if (card.owner.toString() !== req.user?._id) {
+        next((new ForbiddenError('Попытка удалить чужую карточку')));
+      }
+      res.status(SUCCESSFUL_REQUEST_STATUS).send({ message: 'Карточка удалена' });
     })
-    .catch(() => res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию' }));
+    .catch((err) => next(err));
 };
 
-export const likeCard = (req: TypeUser, res: Response) => {
+export const likeCard = (req: TypeUser, res: Response, next: NextFunction) => {
   Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user?._id } }, { new: true })
     .then((card) => {
       if (card) {
         res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: card });
       }
-      return res.status(NOT_FOUND_STATUS).send({ message: 'Передан несуществующий _id карточки.' });
+      next((new NotFoundError('Передан несуществующий _id карточки')));
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные для постановки лайка.' });
+        next((new ValidationError('Переданы некорректные данные для постановки лайка')));
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию.' });
+      next(err);
     });
 };
 
-export const dislikeCard = (req: TypeUser, res: Response) => {
+export const dislikeCard = (req: TypeUser, res: Response, next: NextFunction) => {
   Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user?._id } }, { new: true })
     .then((card) => {
       if (card) {
         res.status(SUCCESSFUL_REQUEST_STATUS).send({ data: card });
       }
-      return res.status(NOT_FOUND_STATUS).send({ message: 'Передан несуществующий _id карточки.' });
+      next((new NotFoundError('Передан несуществующий _id карточки')));
     })
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(BAD_REQUEST_STATUS).send({ message: 'Переданы некорректные данные для снятия лайка.' });
+        next((new ValidationError('Переданы некорректные данные для удаления лайка')));
       }
-      return res.status(INTERNAL_SERVER_ERROR_STATUS).send({ message: 'Ошибка по умолчанию.' });
+      next(err);
     });
 };

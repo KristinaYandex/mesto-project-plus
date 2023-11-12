@@ -1,8 +1,17 @@
-import express, { NextFunction, Response } from 'express';
+import express from 'express';
+import { errors } from 'celebrate';
 import mongoose from 'mongoose';
 import userRouter from './routes/user';
 import cardRouter from './routes/card';
-import { TypeUser } from './types';
+import auth from './middlewares/auth';
+import errorHandler from './middlewares/errorHandler';
+import {
+  requestLogger, errorLogger,
+} from './middlewares/logger';
+import {
+  login, createUser,
+} from './controllers/user';
+import { loginValidation, createUserValidation } from './validators/userValidator';
 
 const app = express();
 
@@ -10,15 +19,21 @@ const { port = 3000, MONGO_URL = 'mongodb://127.0.0.1:27017/mestodb' } = process
 
 app.use(express.json());
 
-app.use((req: TypeUser, res: Response, next: NextFunction) => {
-  req.user = {
-    _id: '5d8b8592978f8bd833ca8133',
-  };
-  next();
-});
+app.use(requestLogger); // подключаем логер запросов
+
+app.post('/signup', createUserValidation, createUser);
+app.post('/signin', loginValidation, login);
+
+app.use(auth); // защищаем все роуты кроме страницы регистрации и логина
 
 app.use(userRouter);
 app.use(cardRouter);
+
+app.use(errorLogger); // подключаем логер ошибок
+
+app.use(errors()); // обработчик ошибок celebrate
+
+app.use(errorHandler); // централизованный обработчик ошибок
 
 async function connect() {
   try {
